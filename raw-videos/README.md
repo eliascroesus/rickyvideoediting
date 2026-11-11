@@ -16,10 +16,32 @@ You can also add separate audio (`.wav`, `.m4a`, `.mp3`) if you recorded sound o
 2. Click **Add file → Upload files**.
 3. Drag the clips in, then click **Commit changes**.
 
-GitHub's website won't accept files over **25 MB**. Most phone videos are bigger than
-that, so for those use option B.
+GitHub's website won't accept files over **25 MB** here. Most phone videos are bigger than
+that, so for those use option B or C.
 
-### Option B: Any size up to 2 GB per file, with GitHub Desktop (recommended)
+### Option B: Big files (up to 2 GB each) in the browser, via a Release (easiest)
+
+Releases accept browser uploads up to **2 GB per file**, with no app to install. They also don't
+use your Git LFS storage quota.
+
+1. **First time:** on a computer, open
+   https://github.com/eliascroesus/rickyvideoediting/releases/new?tag=raw-videos&title=Raw%20videos&prerelease=1
+   (the tag `raw-videos` and the title are pre-filled).
+2. Drag your videos into the **"Attach binaries by dropping them here"** box at the bottom and
+   wait until every upload bar finishes.
+3. Click **Publish release**.
+4. **Next time**, add more videos to the same release with
+   https://github.com/eliascroesus/rickyvideoediting/releases/edit/raw-videos
+   → drop files → **Update release**.
+
+Then tell Claude the file names. Claude downloads them from the release and edits them.
+
+> ⚠️ This repository is **public**, so anyone can see and download release files (and anything
+> in this folder). For private footage, first make the repo private: **Settings → General →
+> Danger Zone → Change visibility**. In that case, use option C, which Claude can
+> always download from.
+
+### Option C: Any size up to 2 GB per file, with GitHub Desktop
 
 1. Install **GitHub Desktop** (free, Mac and Windows): https://desktop.github.com and sign in.
 2. **File → Clone repository** → pick `eliascroesus/rickyvideoediting`.
@@ -30,7 +52,7 @@ that, so for those use option B.
 Video files go through **Git LFS** (large file storage) automatically. This repo's
 `.gitattributes` file is already set up for it, so there's nothing to configure.
 
-### Option C: Command line
+### Option D: Command line
 
 ```bash
 git lfs install

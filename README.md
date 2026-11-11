@@ -13,5 +13,8 @@ Workspace for raw footage, the edit asset library, and finished edits.
 - What every track and SFX pack is good for: **[assets/README.md](assets/README.md)**
 - Licenses & the credit line to paste when you use the music: **[assets/CREDITS.md](assets/CREDITS.md)**
 
-Video files are stored with Git LFS (see `.gitattributes`), so clips up to 2 GB each are fine
-when uploaded with GitHub Desktop or git. The website's own uploader stops at 25 MB.
+**Big videos (up to 2 GB each) from the browser:** attach them to the `raw-videos` release:
+[create it the first time](https://github.com/eliascroesus/rickyvideoediting/releases/new?tag=raw-videos&title=Raw%20videos&prerelease=1),
+then [add more later](https://github.com/eliascroesus/rickyvideoediting/releases/edit/raw-videos).
+⚠️ This repo is public, so uploaded files are visible to anyone. Other upload options are in the
+[upload guide](raw-videos/README.md).

@@ -50,6 +50,8 @@ If a platform ever flags one of these tracks, that credit line + license link is
 | `music/stings/gustav-sting.mp3` | "Gustav Sting" | [incompetech.com](https://incompetech.com/music/royalty-free/mp3-royaltyfree/Gustav%20Sting.mp3) |
 | `music/stings/dangerous.mp3` | "Dangerous" | [incompetech.com](https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dangerous.mp3) |
 | `music/stings/epic-unease.mp3` | "Epic Unease" | [incompetech.com](https://incompetech.com/music/royalty-free/mp3-royaltyfree/Epic%20Unease.mp3) |
+| `music/background-chill/chill-wave.mp3` | "Chill Wave" | [incompetech.com](https://incompetech.com/music/royalty-free/mp3-royaltyfree/Chill%20Wave.mp3) |
+| `music/background-chill/investigations.mp3` | "Investigations" | [incompetech.com](https://incompetech.com/music/royalty-free/mp3-royaltyfree/Investigations.mp3) |
 
 ## Sound effects: CC0 (public domain), no credit needed
 

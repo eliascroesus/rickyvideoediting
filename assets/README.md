@@ -56,6 +56,13 @@ Music is the original 256–320 kbps MP3 from the composer.
 | `nerves.mp3` | 2:52 | Constant intense shifts, then a driving section |
 | `urban-gauntlet.mp3` | 3:29 | Percussion-driven, relentless |
 
+### `background-chill/`: light beds under talking / tutorials
+
+| File | Length | Use it for |
+|---|---|---|
+| `chill-wave.mp3` | 4:00 | Relaxed chillwave groove; sits well under voice in tutorials / screen recordings |
+| `investigations.mp3` | 1:34 | Curious, slightly sneaky groove: explaining a "secret", setups |
+
 ### `stings/`: short musical hits
 
 | File | Length | Use it for |

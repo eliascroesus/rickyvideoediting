@@ -1,0 +1,14 @@
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+__MACOSX/
+
+# Editor / render scratch files
+*.tmp
+*.part
+*.pkf
+*.cfa
+.~lock*
+tmp/
+renders-tmp/

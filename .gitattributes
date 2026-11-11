@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# Video files are stored with Git LFS (Large File Storage).
+# GitHub rejects normal files over 100 MB; LFS allows up to 2 GB per file.
+# GitHub Desktop and the git command line pick these rules up automatically.
+# The [xX] brackets match both lower- and upper-case extensions (.mov / .MOV).
+# ---------------------------------------------------------------------------
+*.[mM][pP]4       filter=lfs diff=lfs merge=lfs -text
+*.[mM][oO][vV]    filter=lfs diff=lfs merge=lfs -text
+*.[mM]4[vV]       filter=lfs diff=lfs merge=lfs -text
+*.[mM][kK][vV]    filter=lfs diff=lfs merge=lfs -text
+*.[aA][vV][iI]    filter=lfs diff=lfs merge=lfs -text
+*.[wW][eE][bB][mM] filter=lfs diff=lfs merge=lfs -text
+*.[mM][tT][sS]    filter=lfs diff=lfs merge=lfs -text
+*.[mM]2[tT][sS]   filter=lfs diff=lfs merge=lfs -text
+*.[mM][xX][fF]    filter=lfs diff=lfs merge=lfs -text
+*.3[gG][pP]       filter=lfs diff=lfs merge=lfs -text
+
+# Separate audio recorded alongside the raw footage (lav mics, voice memos...)
+raw-videos/**/*.[wW][aA][vV]  filter=lfs diff=lfs merge=lfs -text
+raw-videos/**/*.[mM]4[aA]     filter=lfs diff=lfs merge=lfs -text
+raw-videos/**/*.[mM][pP]3     filter=lfs diff=lfs merge=lfs -text
+raw-videos/**/*.[aA][iI][fF]*  filter=lfs diff=lfs merge=lfs -text
+
+# The music / SFX library in assets/ is kept as normal files on purpose,
+# so it is always available right after a clone.

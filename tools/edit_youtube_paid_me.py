@@ -170,31 +170,36 @@ def grade(fr):
 
 
 # ------------------------------------------------------------------ grid background (UI scenes)
-def _make_grid():
+def _make_page():
+    """black page with a warm orange gradient glow and a grid whose opacity fades out towards the edges."""
     m = 240
     H, W = OH + m, OW + m
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    r = np.sqrt(((xx - W / 2) / (W * 0.55)) ** 2 + ((yy - H * 0.45) / (H * 0.6)) ** 2)
-    g = np.clip(1 - r, 0, 1) ** 1.6
-    base = np.array(BASE, np.float32)
-    center = np.array((44, 40, 38), np.float32)
-    img = base[None, None] + (center - base)[None, None] * g[:, :, None]
-    step = int(80 * K)
+    img = np.empty((H, W, 3), np.float32)
+    img[:] = (7, 6, 6)
+    r1 = np.sqrt(((xx - W * 0.5) / (W * 0.62)) ** 2 + ((yy - H * 1.02) / (H * 0.80)) ** 2)
+    g1 = np.clip(1 - r1, 0, 1) ** 1.7
+    r2 = np.sqrt(((xx - W * 0.10) / (W * 0.42)) ** 2 + ((yy + H * 0.05) / (H * 0.55)) ** 2)
+    g2 = np.clip(1 - r2, 0, 1) ** 2.0
+    orange = np.array((18, 88, 220), np.float32)
+    img += orange[None, None] * (g1 * 0.62 + g2 * 0.20)[:, :, None]
+    step = int(90 * K)
     lines = np.zeros((H, W), np.float32)
     lines[:, ::step] = 1
     lines[::step, :] = 1
-    lines = cv2.GaussianBlur(lines, (0, 0), 0.6)
-    img += lines[:, :, None] * (16 + 30 * g[:, :, None])
+    lines = cv2.GaussianBlur(lines, (0, 0), 0.7)
+    rc = np.sqrt(((xx - W / 2) / (W * 0.52)) ** 2 + ((yy - H * 0.52) / (H * 0.58)) ** 2)
+    fade = np.clip(1 - rc, 0, 1) ** 1.2
+    img += lines[:, :, None] * (55 * fade + 45 * g1)[:, :, None]
     return np.clip(img, 0, 255).astype(np.uint8), step
 
 
-GRID, GSTEP = _make_grid()
+GRID, GSTEP = _make_page()
 
 
 def grid_bg(t):
-    ox = int((t * 9) % GSTEP)
-    oy = int((t * 5) % GSTEP)
-    return GRID[120 - oy:120 - oy + OH, 120 - ox:120 - ox + OW].copy()
+    ox = int((t * 7) % GSTEP)
+    return GRID[120:120 + OH, 120 - ox:120 - ox + OW].copy()
 
 
 # ------------------------------------------------------------------ rounded shapes / cards
@@ -280,43 +285,54 @@ def icon_alpha(kind, size):
 @functools.lru_cache(None)
 def ui_card(w, h, main="", sub="", style="sans", icon=None, accent=False, num="", check=False, main_px=0,
             align="c"):
-    """Iman-style UI card: rounded rectangle (30-70 px corners), grey->black gradient, light-sweep edge with a deep
-    glow, faded track-matted icon, one strong line of text. returns (BGRA uint8, glow margin)."""
+    """Iman-style card: rounded rect, orange -> black gradient, faded grid inside, glowing orange edge (light sweep)
+    with a deep outer glow, faded track-matted icon. returns (BGRA uint8, glow margin)."""
     w, h = int(w * K), int(h * K)
-    r = int(min(64 * K, h * 0.30))
-    g = int(70 * K)
+    r = int(min(56 * K, h * 0.28))
+    g = int(90 * K)
     W, H = w + 2 * g, h + 2 * g
     m = rr_mask(w, h, r, 2).astype(np.float32) / 255
     full = np.zeros((H, W), np.float32)
     full[g:g + h, g:g + w] = m
     YY, XX = np.mgrid[0:H, 0:W].astype(np.float32)
-    # body
-    v = np.clip(((YY - g) / h) * 0.85 + ((XX - g) / w) * 0.15, 0, 1)[:, :, None]
-    top, bot = np.array((46, 45, 49), np.float32), np.array((10, 10, 12), np.float32)
-    body = top * (1 - v) + bot * v
-    hl = np.exp(-(((XX - g - 0.2 * w) / (0.55 * w)) ** 2 + ((YY - g + 0.15 * h) / (0.9 * h)) ** 2))[:, :, None]
-    body = body + hl * 16
-    # light-sweep rim
-    rim = np.clip(full - cv2.erode(full, np.ones((3, 3), np.uint8), iterations=max(1, int(1.5 * K))), 0, 1)
-    diag = 1 - np.clip(((XX - g) / w) * 0.65 + ((YY - g) / h) * 0.35, 0, 1)
-    inten = 0.10 + 0.90 * diag ** 1.8
-    rim_i = rim * inten
-    rimcol = np.array((250, 172, 48) if accent else (255, 255, 255), np.float32)
-    glow = np.clip(cv2.GaussianBlur(rim_i, (0, 0), 16 * K) * (2.6 if accent else 1.3), 0, 1) * (1 - full)
-    shadow = cv2.GaussianBlur(full, (0, 0), 30 * K)
-    shadow = np.roll(shadow, int(22 * K), 0) * 0.65 * (1 - full)
+    u, v = (XX - g) / w, (YY - g) / h
+    d = np.clip(u * 0.55 + v * 0.45, 0, 1)
+    warm = np.clip(1 - d * 1.25, 0, 1) ** 1.5                     # 1 at the top-left corner, 0 past the middle
+    orange = np.array((232, 104, 24), np.float32)
+    dark = np.array((9, 8, 8), np.float32)
+    body = dark + (orange - dark) * (warm * (0.62 if accent else 0.42))[:, :, None]
+    # faded grid inside the card
+    step = int(30 * K)
+    gl = np.zeros((H, W), np.float32)
+    gl[:, g % step::step] = 1
+    gl[g % step::step, :] = 1
+    gl = cv2.GaussianBlur(gl, (0, 0), 0.6)
+    body += gl[:, :, None] * (8 + 46 * warm)[:, :, None]
+    # inner top highlight
+    hl = np.exp(-((YY - g - 3 * K) / (3 * K)) ** 2) * np.clip(1 - u * 1.2, 0, 1)
+    body += hl[:, :, None] * 40
+    # rim with light sweep + deep glow
+    rim = np.clip(full - cv2.erode(full, np.ones((3, 3), np.uint8), iterations=max(1, int(1.4 * K))), 0, 1)
+    sweep = np.clip(1 - d * 1.1, 0, 1) ** 1.3
+    rim_i = rim * (0.16 + 0.84 * sweep)
+    rimcol = np.array((255, 156, 64), np.float32)
+    glow_t = np.clip(cv2.GaussianBlur(rim_i, (0, 0), 7 * K) * 2.4, 0, 1)
+    glow_w = np.clip(cv2.GaussianBlur(rim_i, (0, 0), 30 * K) * 3.0, 0, 1)
+    outside = 1 - full
+    shadow = np.roll(cv2.GaussianBlur(full, (0, 0), 28 * K), int(20 * K), 0) * 0.75 * outside
     rgbf = np.zeros((H, W, 3), np.float32)
     a = np.zeros((H, W), np.float32)
 
     def over(col, al):
         nonlocal rgbf, a
-        al = al[:, :, None]
-        rgbf = rgbf * (1 - al) + col * al
-        a = a + al[:, :, 0] * (1 - a)
+        al3 = al[:, :, None]
+        rgbf = rgbf * (1 - al3) + col * al3
+        a = a + al * (1 - a)
 
     over(np.zeros(3, np.float32), shadow)
-    over(rimcol, glow * (0.55 if accent else 0.32))
-    over(body, full * 0.97)
+    over(rimcol, glow_w * outside * (0.42 if accent else 0.30))
+    over(rimcol, glow_t * outside * (0.75 if accent else 0.55))
+    over(body, full * 0.96)
     if icon:
         size = int(h * 1.05)
         ia = icon_alpha(icon, size)
@@ -324,19 +340,19 @@ def ui_card(w, h, main="", sub="", style="sans", icon=None, accent=False, num=""
         x0, y0 = int(g + w - size * 0.72), int(g + (h - size) / 2)
         xs0, xs1 = max(0, x0), min(W, x0 + size)
         lay[y0:y0 + size, xs0:xs1] = ia[:, xs0 - x0:xs1 - x0]
-        wipe = np.clip((XX - x0) / size * 1.4 - 0.1, 0, 1) * 0.20
-        over(np.full(3, 255, np.float32), lay * wipe * full)
-    over(rimcol, rim_i)
+        wipe = np.clip((XX - x0) / size * 1.4 - 0.1, 0, 1) * 0.16
+        over(np.array((255, 214, 170), np.float32), lay * wipe * full)
+    over(np.array((255, 196, 140), np.float32), rim_i)
     im = Image.fromarray(np.dstack([rgbf, a * 255]).clip(0, 255).astype(np.uint8), "RGBA")
     gold = (250, 172, 48, 255)
     x = g + 54 * K
     if check:
-        d = ImageDraw.Draw(im)
+        dd = ImageDraw.Draw(im)
         rr = h * 0.17
         cy = g + h / 2
-        d.ellipse((x, cy - rr, x + 2 * rr, cy + rr), fill=gold)
-        d.line([(x + rr * .55, cy + rr * .02), (x + rr * .9, cy + rr * .38), (x + rr * 1.5, cy - rr * .4)],
-               fill=(14, 14, 16, 255), width=int(5 * K), joint="curve")
+        dd.ellipse((x, cy - rr, x + 2 * rr, cy + rr), fill=gold)
+        dd.line([(x + rr * .55, cy + rr * .02), (x + rr * .9, cy + rr * .38), (x + rr * 1.5, cy - rr * .4)],
+                fill=(14, 14, 16, 255), width=int(5 * K), joint="curve")
         x += 2 * rr + 30 * K
     if num:
         draw_text_pil(im, (x, g + h / 2), num, F_SERIF, h * 0.42, gold, "lm", glow=True)
@@ -345,15 +361,15 @@ def ui_card(w, h, main="", sub="", style="sans", icon=None, accent=False, num=""
         serif = style == "serif"
         px = main_px * K if main_px else (h * (0.40 if serif else 0.22))
         path = F_SERIF if serif else F_SANS
-        col = gold if (serif and accent) else (242, 242, 242, 255)
+        col = gold if (serif and accent) else (246, 244, 242, 255)
         cy = g + h * (0.42 if sub else 0.5)
         if align == "c":
             draw_text_pil(im, (g + w / 2, cy), main, path, px, col, "mm", glow=serif and accent)
         else:
             draw_text_pil(im, (x, cy), main, path, px, col, "lm", glow=serif and accent)
         if sub:
-            draw_text_pil(im, (g + w / 2 if align == "c" else x, g + h * 0.74), sub, F_SANS_M, h * 0.095,
-                          rgb(SECOND) + (255,), "mm" if align == "c" else "lm")
+            draw_text_pil(im, (g + w / 2 if align == "c" else x, g + h * 0.75), sub, F_SANS_M, h * 0.095,
+                          (214, 206, 198, 255), "mm" if align == "c" else "lm")
     return pil_to_bgra(im), g
 
 
@@ -754,111 +770,47 @@ def scene(a, b, kind, **kw):
     SCENES.append(dict(a=a, b=b, kind=kind, **kw))
 
 
-# 1 hook: analytics, push into "122.8M views"
-scene(0.0, 5.55, "window",
-      cam=Track([(0.0, 1.06, 1280, 720), (2.3, 1.95, 600, 640), (5.6, 2.15, 600, 650)]),
+# 1 hook: analytics, one push into "122.8M views"
+scene(0.0, 5.55, "screen",
+      cam=Track([(0.0, 1.0, 1280, 720), (0.7, 1.0, 1280, 720), (2.35, 1.95, 600, 640), (5.6, 2.0, 600, 645)]),
       spots=[(2.2, 5.6, VIEWS)],
       strokes=[Stroke(curve(482, 672, 628, 670, 3), 2.75, 5.5, cam=True, width=5)])
-# 2 UI: "all my money comes from YouTube AdSense ... couldn't be further from the truth"
+# 2 page: "YouTube AdSense", struck through
 scene(5.55, 12.25, "ui", ui="adsense")
-# 3 analytics: slow pan, then drift onto the (blurred) revenue card
-scene(12.25, 26.0, "window",
-      cam=Track([(12.25, 1.30, 700, 800), (21.6, 1.45, 1150, 760), (25.95, 2.05, 1570, 655)]),
-      spots=[(22.3, 26.0, REV)])
-# 4 reveal
-scene(26.0, 32.6, "window",
-      cam=Track([(26.0, 2.05, 1570, 655), (26.25, 2.3, 1570, 660), (32.6, 2.45, 1570, 670)]),
-      spots=[(25.9, 32.0, REV)],
-      strokes=[Stroke(curve(1452, 672, 1652, 669, 4), 26.35, 32.3, cam=True, width=4)])
-# 5 "a different source of income" over the dimmed dashboard
-scene(32.6, 39.16, "window",
-      cam=Track([(32.6, 1.15, 1280, 720), (39.2, 1.32, 1250, 700)]), dimall=(36.8, 39.4))
-# 6 paper part 1
-scene(39.63, 59.5, "paper",
-      cam=Track([(39.63, 1.12, PC[0], 640), (44.0, 1.32, 1330, 470), (49.0, 1.5, 1390, 500),
-                 (55.5, 1.5, 1390, 520), (59.5, 1.4, 1330, 650)]))
-# 7 UI: $100 per million  ->  $500-$1,000
-scene(59.5, 74.5, "ui", ui="permillion")
-# 8 paper part 2
-scene(74.5, 111.0, "paper",
-      cam=Track([(74.5, 1.25, 1420, 800), (80.0, 1.38, 1380, 900), (92.0, 1.32, 1370, 960),
-                 (100.0, 1.28, 1360, 1020), (108.0, 1.10, PC[0], 760), (111.0, 1.08, PC[0], 740)]),
-      dimall=(85.0, 92.25), dimall2=(102.6, 110.0))
-# 9 talking head: "$40,000"
-scene(111.42, 123.0, "head",
-      cam=Track([(111.42, 1.08, *FACE), (115.6, 1.16, 1220, 610), (117.1, 1.0, 1240, 690),
-                 (118.1, 1.0, 1240, 690), (121.0, 1.03, 1230, 670), (123.0, 1.08, 1220, 640)]),
-      bgfx=[(117.3, 120.9)])
-# 10 UI: the old way
-scene(123.0, 130.6, "ui", ui="oldway")
-# 11 talking head: millions of eyes / $0 / paid to make ads
-scene(130.6, 149.9, "head",
-      cam=Track([(130.6, 1.12, 1180, 600), (135.9, 1.18, 1220, 600), (137.0, 1.0, 1240, 690),
-                 (140.0, 1.02, 1240, 680), (141.2, 1.0, 1240, 690), (143.6, 1.14, 1220, 610), (144.6, 1.0, 1240, 690),
-                 (149.9, 1.04, 1230, 660)]),
-      bgfx=[(136.4, 143.4), (144.3, 149.7)])
-# 12 talking head: "this business is insane" punch + slow push
-scene(149.9, 167.8, "head",
-      cam=Track([(149.9, 1.07, 1220, 640), (152.3, 1.10, 1220, 630), (152.45, 1.38, 1220, 560),
-                 (153.2, 1.38, 1220, 565), (154.6, 1.05, 1220, 650), (158.6, 1.06, 1220, 640),
-                 (167.8, 1.24, 1220, 600)]))
-# 13 chapter 1
+# 3 analytics: hold wide, one move onto the blurred revenue card, reveal, back out
+scene(12.25, 39.16, "screen",
+      cam=Track([(12.25, 1.0, 1280, 720), (21.7, 1.0, 1280, 720), (25.95, 2.05, 1570, 655),
+                 (31.6, 2.1, 1570, 660), (33.4, 1.0, 1280, 720), (39.2, 1.0, 1280, 720)]),
+      spots=[(22.3, 32.0, REV)],
+      strokes=[Stroke(curve(1452, 672, 1652, 669, 4), 26.35, 31.6, cam=True, width=4)])
+# 4 paper (stabilised), gentle camera; money cards pop over the darkened paper
+scene(39.63, 111.0, "paper",
+      cam=Track([(39.63, 1.14, 1370, 620), (80.0, 1.14, 1380, 860), (110.5, 1.08, 1370, 760)]),
+      carddim=[(56.8, 74.7)])
+# 5 talking head: $40,000 beside his head
+scene(111.42, 167.8, "head",
+      cam=Track([(111.42, 1.06, 1225, 640), (115.6, 1.14, 1220, 610), (117.1, 1.0, 1240, 690),
+                 (167.8, 1.06, 1230, 660)]),
+      bgfx=[(116.9, 121.0)])
 scene(167.8, 172.9, "ui", ui="ch1")
-# 14 paper step 1
 scene(172.9, 205.32, "paper",
-      cam=Track([(172.9, 1.35, 1330, 520), (180.0, 1.45, 1340, 560), (190.0, 1.3, 1350, 720),
-                 (199.0, 1.25, 1360, 820), (205.4, 1.1, PC[0], 720)]),
-      dimall=(178.9, 183.3))
-# 15 screen: viral ads ranking, competitor account
-scene(206.97, 308.3, "window",
-      cam=Track([(206.97, 1.0, 1280, 720), (222.5, 1.06, 1280, 720), (225.0, 1.22, 1270, 700),
-                 (231.8, 1.22, 1270, 700), (237.8, 1.15, 1500, 700), (240.5, 1.45, 1900, 720),
-                 (244.0, 1.10, 1280, 720), (262.0, 1.05, 1280, 720), (270.0, 1.12, 1100, 700),
-                 (276.5, 1.18, 1100, 650), (286.5, 1.05, 1280, 720), (295.5, 1.08, 1280, 720),
-                 (297.0, 1.35, 1800, 600), (302.8, 1.35, 1800, 640), (308.3, 1.05, 1280, 720)]),
-      spots=[(225.0, 231.6, (415, 195, 2125, 1265)), (238.6, 243.6, (1705, 195, 2120, 1265)),
-             (296.6, 302.6, (1420, 270, 2280, 960))],
-      dimall=(277.9, 286.2))
-# 16 chapter 2
+      cam=Track([(172.9, 1.14, 1350, 640), (205.4, 1.10, 1370, 720)]))
+# screen recordings stay raw: full frame, no captions, only spotlights on the key parts
+scene(206.97, 308.3, "screen", cam=Track([(206.97, 1.0, 1280, 720), (308.3, 1.0, 1280, 720)]),
+      carddim=[(277.9, 286.4)])
 scene(308.3, 312.8, "ui", ui="ch2")
-# 17 screen: ChatGPT
-scene(312.8, 359.2, "window",
-      cam=Track([(312.8, 1.05, 1280, 720), (322.6, 1.1, 1280, 720), (330.0, 1.1, 1280, 720),
-                 (333.0, 1.3, 1500, 640), (346.8, 1.3, 1500, 760), (348.4, 1.35, 1050, 700),
-                 (355.0, 1.35, 1050, 720), (359.2, 1.05, 1280, 720)]),
-      spots=[(348.6, 355.0, (735, 160, 1350, 1245))],
-      dimall=(322.9, 329.8))
-# 18 chapter 3
+scene(312.8, 359.2, "screen", cam=Track([(312.8, 1.0, 1280, 720), (359.2, 1.0, 1280, 720)]),
+)
 scene(359.2, 363.9, "ui", ui="ch3")
-# 19 screen: Claude
-scene(363.9, 505.0, "window",
-      cam=Track([(363.9, 1.05, 1280, 720), (365.0, 1.3, 1000, 1000), (371.5, 1.3, 1000, 1000),
-                 (374.0, 1.08, 1280, 720), (395.0, 1.12, 1300, 760), (415.5, 1.12, 1300, 700),
-                 (417.0, 1.55, 1280, 620), (436.5, 1.55, 1280, 640), (437.6, 1.1, 1280, 720),
-                 (461.8, 1.1, 1280, 720), (463.5, 1.4, 900, 800), (482.0, 1.4, 900, 820),
-                 (492.0, 1.1, 1280, 720), (505.0, 1.05, 1280, 720)]),
-      spots=[(365.1, 371.5, (760, 1040, 1150, 1225)), (417.2, 436.5, (760, 515, 1800, 715)),
-             (463.6, 482.0, (725, 360, 1030, 1240))],
-      dimall=(437.8, 461.9))
-# 20 chapter 4
+scene(363.9, 505.0, "screen", cam=Track([(363.9, 1.0, 1280, 720), (505.0, 1.0, 1280, 720)]))
 scene(505.0, 509.5, "ui", ui="ch4")
-# 21 screen: CapCut + checklist
-scene(509.5, 562.3, "window", checklist=True,
-      cam=Track([(509.5, 1.05, 1280, 720), (513.5, 1.05, 1280, 720), (514.8, 1.15, 1300, 640),
-                 (555.4, 1.15, 1300, 640), (556.6, 1.6, 1300, 450), (562.3, 1.75, 1300, 450)]))
-# 22 the finished ad, as a phone
-scene(562.3, 579.35, "phone")
-# 23 back to screen
-scene(579.35, 592.03, "window",
-      cam=Track([(579.35, 1.1, 1280, 720), (592.0, 1.2, 1280, 700)]), dimall=(580.0, 582.6))
-# 24 outro
+scene(509.5, 592.03, "screen", cam=Track([(509.5, 1.0, 1280, 720), (592.03, 1.0, 1280, 720)]))
 scene(592.03, 609.45, "head",
-      cam=Track([(592.03, 1.04, 1220, 650), (598.2, 1.14, 1220, 620), (599.4, 1.0, 1240, 690),
-                 (604.4, 1.02, 1240, 680), (609.0, 1.12, 1220, 630)]),
+      cam=Track([(592.03, 1.0, 1240, 690), (609.0, 1.06, 1235, 670)]),
       bgfx=[(599.0, 604.6)])
 
-# transitions: zoom-through between consecutive scenes, except continuous ones
-NO_TRANS = {26.0}
+# transitions: zoom-through between consecutive scenes
+NO_TRANS = set()
 
 # ------------------------------------------------------------------ text / UI content
 W_ = OW / 2
@@ -871,29 +823,7 @@ def L(*words):
 
 TEXTS = {
     "adsense": [
-        TextSeq([L(("a lot of people think", "grey", 6.08))], 12.2, (W_, 330 * K), sizes=(46, 90), stagger=0.012),
-        TextSeq([L(("all", "sans", 7.36), ("my", "sans", 7.68), ("money", "sans", 7.84), ("comes", "sans", 8.24),
-                   ("from", "sans", 8.48)),
-                 L(("YouTube", "serif", 8.64), ("AdSense", "serif", 9.12))], 12.2, (W_, 560 * K), sizes=(84, 170)),
-    ],
-    "reveal": [
-        TextSeq([L(("from", "sans", 28.32), ("YouTube", "serif", 29.29), ("AdSense", "serif", 29.85))], 32.5,
-                (W_, 1180), sizes=(64, 110)),
-    ],
-    "income": [
-        TextSeq([L(("but", "sans", 32.57), ("most", "sans", 33.69), ("of", "sans", 34.01), ("my", "sans", 34.57),
-                   ("money", "sans", 34.17)),
-                 L(("comes", "sans", 36.25), ("from", "sans", 36.65), ("a", "sans", 36.97), ("different", "sans", 37.29)),
-                 L(("source of income", "serif", 37.61))], 39.3, (W_, OH / 2), sizes=(76, 170), gap=1.02),
-    ],
-    "disguise": [
-        TextSeq([L(("I", "sans", 85.2), ("make", "sans", 85.4), ("ads", "serif", 85.9)),
-                 L(("disguised", "sans", 87.1), ("as", "sans", 88.5)),
-                 L(("normal videos", "serif", 88.9))], 92.25, (W_, OH / 2), sizes=(86, 170)),
-    ],
-    "sales": [
-        TextSeq([L(("millions", "sans", 102.9), ("of", "sans", 103.7), ("views", "sans", 103.9)),
-                 L(("=", "sans", 105.0), ("sales", "serif", 108.6))], 110.0, (W_, OH / 2), sizes=(90, 190)),
+        TextSeq([L(("YouTube", "serif", 8.64), ("AdSense", "serif", 9.12))], 12.2, (W_, OH / 2), sizes=(84, 230)),
     ],
     "40k": [
         TextSeq([L(("last", "sans", 117.1), ("month", "sans", 117.25)), L(("I", "sans", 117.4), ("made", "sans", 117.5))],
@@ -901,31 +831,11 @@ TEXTS = {
         TextSeq([L(("$40,000", "serif", 117.84))], 120.9, (1690, 640), sizes=(100, 160), align="l", behind=True,
                 ry=16, rz=4, stagger=0.05),
     ],
-    "eyes": [
-        TextSeq([L(("millions", "sans", 136.8), ("of", "sans", 137.6))], 140.3, (880, 610), sizes=(104, 200),
-                align="r", behind=True, ry=-14),
-        TextSeq([L(("eyes", "serif", 137.9))], 140.3, (1700, 620), sizes=(100, 230), align="l", behind=True, ry=16, rz=4),
-        TextSeq([L(("for", "sans", 141.0))], 143.3, (880, 610), sizes=(110, 200), align="r", behind=True, ry=-14),
-        TextSeq([L(("$0", "serif", 141.5))], 143.3, (1700, 620), sizes=(100, 260), align="l", behind=True, ry=16, rz=4),
-        TextSeq([L(("you", "sans", 144.6), ("get", "sans", 144.75))], 149.6, (880, 590), sizes=(110, 200),
-                align="r", behind=True, ry=-14),
-        TextSeq([L(("paid", "serif", 144.9))], 149.6, (1700, 570), sizes=(100, 230), align="l", behind=True, ry=16, rz=4),
-        TextSeq([L(("to", "sans", 145.9), ("make", "sans", 146.1), ("ads", "sans", 146.4))], 149.6, (1720, 800),
-                sizes=(76, 150), align="l", behind=True, ry=16, rz=4),
-    ],
-    "copy": [
-        TextSeq([L(("copy", "sans", 179.2)), L(("what works", "serif", 179.6))], 183.3, (W_, 650), sizes=(96, 200)),
-    ],
-    "viral": [
-        TextSeq([L(("a", "sans", 580.1), ("super", "serif", 580.3), ("viral", "serif", 580.8)),
-                 L(("video", "sans", 581.3))], 582.6, (W_, OH / 2), sizes=(96, 210)),
-    ],
     "discord": [
         TextSeq([L(("join", "sans", 599.3), ("the", "sans", 599.5))], 604.6, (880, 610), sizes=(110, 200), align="r",
                 behind=True, ry=-14),
         TextSeq([L(("Discord", "serif", 599.7))], 604.6, (1690, 630), sizes=(100, 180), align="l", behind=True,
                 ry=16, rz=4),
-        TextSeq([L(("link in the description", "grey", 600.3))], 604.6, (1240, 1250), sizes=(46, 80), stagger=0.012),
     ],
 }
 
@@ -947,19 +857,8 @@ CH = {
 for key, (n, pre, sp, a, b) in CH.items():
     TEXTS[key] = chapter_texts(n, pre, sp, a, b)
 
-
-def under_word(seq, word_index_from_end=0, t0=None, t_out=None):
-    """underline below the last line of a TextSeq."""
-    xs = [c["x"] + c["px"] * 0.3 for c in seq.chars]
-    ys = [c["y"] + c["px"] * 1.55 for c in seq.chars]
-    x0, x1 = min(xs) - 10 * K, max(xs) + seq.chars[-1]["px"] * 0.45
-    y = max(ys)
-    return Stroke(curve(x0, y, x1, y - 6 * K, 10 * K), t0, t_out, dur=0.55, width=5)
-
-
 STROKES = {
-    "adsense": [Stroke(curve(W_ - 740, 832, W_ + 740, 800, -8 * K), 10.3, 12.2, dur=0.35,
-                       colour=WHITE, width=6)],
+    "adsense": [Stroke(curve(W_ - 780, 760, W_ + 780, 728, -8 * K), 10.3, 12.2, dur=0.35, colour=WHITE, width=7)],
 }
 for key, (n, pre, sp, a, b) in CH.items():
     seq = TEXTS[key][1]
@@ -968,60 +867,20 @@ for key, (n, pre, sp, a, b) in CH.items():
     x1 = max(c["x"] for c in serif_chars) + serif_chars[-1]["px"] * 0.55
     y = 815
     STROKES[key] = [Stroke(curve(x0, y, x1, y - 8 * K, 14 * K), a + 1.0, b, dur=0.6, width=6)]
-STROKES["income"] = [Stroke(curve(W_ - 520 * K, 918, W_ + 520 * K, 910, 12 * K),
-                            38.4, 39.3, dur=0.5, width=6)]
 
 
 # ------------------------------------------------------------------ UI scene renderers
 def ui_frame(name, t):
     fr = grid_bg(t)
     if name == "adsense":
-        for s in TEXTS["adsense"]:
+        for s in TEXTS["adsense"] + STROKES["adsense"]:
             s.draw(fr, t)
-        for s in STROKES["adsense"]:
-            s.draw(fr, t)
-        if t >= 10.4:
-            TextSeq_cache("truth").draw(fr, t)
-    elif name == "permillion":
-        TextSeq_cache("pm_hdr").draw(fr, t)
-        y = 800
-        pop_in(fr, ui_card(540, 380, "1M views", "on YouTube Shorts", icon="play"), 450, y, t, 57.0)
-        Stroke(curve(825, y, 900, y, 0), 60.6, 74.4, dur=0.35, colour=SECOND, width=4).draw(fr, t)
-        val = 0 if t < 61.73 else int(round(100 * e_out((t - 61.73) / 0.7)))
-        pop_in(fr, ui_card(540, 380, f"${val}", "what YouTube pays", style="serif", icon="dollar", main_px=118), 1280, y, t, 60.9)
-        if t >= 64.0:
-            Stroke(curve(1280 - 190, y - 40, 1280 + 190, y - 70, 0), 64.0, 74.4, dur=0.3,
-                   colour=(70, 70, 235), width=6).draw(fr, t)
-        Stroke(curve(1655, y, 1730, y, 0), 70.3, 74.4, dur=0.35, colour=ACCENT, width=4).draw(fr, t)
-        pop_in(fr, ui_card(540, 380, "$500\u20131K", "what I want", style="serif", accent=True, icon="dollar", main_px=118),
-               2110, y, t, 70.85)
-    elif name == "oldway":
-        TextSeq_cache("old_hdr").draw(fr, t)
-        for (lab, ic, t0), yy in zip((("Pay advertisers", "dollar", 125.4), ("TV commercials", "tv", 128.7),
-                                      ("Paid ads", "ad", 129.9)), (600, 870, 1140)):
-            pop_in(fr, ui_card(1000, 180, lab, icon=ic, main_px=58), OW / 2, yy, t, t0, 130.9)
     elif name in CH:
         n, _, _, a, b = CH[name]
         chapter_numeral(fr, n, t, a - 0.05, b + 0.2)
-        for s in TEXTS[name]:
-            s.draw(fr, t)
-        for s in STROKES[name]:
+        for s in TEXTS[name] + STROKES[name]:
             s.draw(fr, t)
     return fr
-
-
-@functools.lru_cache(None)
-def TextSeq_cache(key):
-    if key == "truth":
-        return TextSeq([L(("couldn't be further from the truth", "grey", 10.32))], 12.2, (W_, 1010), sizes=(48, 90),
-                       stagger=0.012)
-    if key == "pm_hdr":
-        return TextSeq([L(("what", "sans", 55.3), ("Shorts", "sans", 55.6), ("actually", "sans", 55.75),
-                          ("pay", "serif", 55.9))], 74.4, (W_, 380), sizes=(84, 170))
-    if key == "old_hdr":
-        return TextSeq([L(("in", "sans", 123.5), ("the", "sans", 123.6), ("past", "serif", 123.8))], 130.9,
-                       (W_, 300), sizes=(78, 140))
-    raise KeyError(key)
 
 
 @functools.lru_cache(None)
@@ -1148,20 +1007,26 @@ def head_scene(sc, src, t):
     fr = grade(fr)
     person = None
     amt = max([ramp(t, a, b, 0.45, 0.4) for a, b in sc.get("bgfx", [])] + [0])
-    m = mask_at(t)
-    if m is not None and amt > 0:
-        Mq = M.copy()
-        Mq[:, :2] *= 1.0
-        Mq[:, 2] /= 4
-        mq = cv2.warpAffine(m, Mq * np.array([[1, 1, 1], [1, 1, 1]], np.float32), (OW // 4, OH // 4),
-                            flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-        mq = cv2.GaussianBlur(mq.astype(np.float32) / 255, (0, 0), 1.0)
-        mq = np.clip((mq - 0.5) / 0.35, 0, 1)
-        person = cv2.resize(mq, (OW, OH), interpolation=cv2.INTER_LINEAR)
-        bg = soft_blur(fr, 16 * K).astype(np.float32) * 0.5
-        pm = person[:, :, None]
-        k = 1 - amt * (1 - pm)
+    if amt > 0:
+        # adjustment layer (blur + darker) masked by an inverted, heavily feathered ellipse around the speaker
+        q = 4
+        e = np.zeros((OH // q, OW // q), np.float32)
+        c = np.array([1240, 820], np.float32) @ M[:, :2].T + M[:, 2]
+        ax = (int(560 * z / q), int(820 * z / q))
+        cv2.ellipse(e, (int(c[0] / q), int(c[1] / q)), ax, 0, 0, 360, 1.0, -1, cv2.LINE_AA)
+        e = cv2.GaussianBlur(e, (0, 0), 38)
+        e = cv2.resize(e, (OW, OH), interpolation=cv2.INTER_LINEAR)[:, :, None]
+        bg = soft_blur(fr, 16 * K).astype(np.float32) * 0.42
+        k = 1 - amt * (1 - e)
         fr = (fr * k + bg * (1 - k)).astype(np.uint8)
+        m = mask_at(t)
+        if m is not None:  # soft matte, only used to tuck text slightly behind him
+            Mq = M.copy()
+            Mq[:, 2] /= 4
+            mq = cv2.warpAffine(m, Mq, (OW // 4, OH // 4), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+            mq = cv2.GaussianBlur(mq.astype(np.float32) / 255, (0, 0), 2.0)
+            mq = np.clip((mq - 0.45) / 0.4, 0, 1)
+            person = cv2.resize(mq, (OW, OH), interpolation=cv2.INTER_LINEAR)
     return fr, person
 
 
@@ -1185,7 +1050,6 @@ def phone_scene(sc, src, t):
     ph = ph // 2 * 2
     content = cv2.resize(crop, (pw, ph), interpolation=cv2.INTER_CUBIC)
     bg = window(bg, content, OW / 2, OH / 2 + 10 * K)
-    TextSeq_cache_phone().draw(bg, t)
     return bg
 
 
@@ -1195,60 +1059,47 @@ def TextSeq_cache_phone():
                    (W_, 70 * K), sizes=(34, 60), stagger=0.02)
 
 
+def card_dim(fr, amt):
+    """'adjustment layer' behind cards: blur + darken + heavy vignette, so the cards pop."""
+    if amt <= 0.01:
+        return fr
+    bg = soft_blur(fr, 12 * K)
+    bg = cv2.multiply(cv2.multiply(bg, VIG, scale=1 / 255), VIG, scale=1 / 255)
+    bg = bg.astype(np.float32) * 0.45
+    return (fr * (1 - amt) + bg * amt).astype(np.uint8)
+
+
+def money_cards(fr, t):
+    if not (56.9 <= t <= 74.8):
+        return
+    y = OH / 2 + 30
+    pop_in(fr, ui_card(540, 380, "1M views", "on YouTube Shorts", icon="play"), 450, y, t, 57.0, 74.6)
+    Stroke(curve(828, y, 902, y, 0), 60.6, 74.4, dur=0.35, colour=(150, 190, 240), width=4).draw(fr, t)
+    val = 0 if t < 61.73 else int(round(100 * e_out((t - 61.73) / 0.7)))
+    pop_in(fr, ui_card(540, 380, f"${val}", "what YouTube pays", style="serif", icon="dollar", main_px=118),
+           1280, y, t, 60.9, 74.6)
+    if t >= 64.0:
+        Stroke(curve(1280 - 190, y - 30, 1280 + 190, y - 62, 0), 64.0, 74.4, dur=0.3,
+               colour=(70, 70, 235), width=6).draw(fr, t)
+    Stroke(curve(1658, y, 1732, y, 0), 70.3, 74.4, dur=0.35, colour=ACCENT, width=4).draw(fr, t)
+    pop_in(fr, ui_card(540, 380, "$500–$2,000", "what I want", style="serif", accent=True, icon="dollar",
+                       main_px=80), 2110, y, t, 70.85, 74.6)
+
+
 def overlays(fr, sc, t, person):
     """scene-specific text/cards drawn on the final composite."""
     a = sc["a"]
-    if a == 26.0:
-        for s in TEXTS["reveal"]:
-            s.draw(fr, t)
-    elif a == 32.6:
-        for s in TEXTS["income"]:
-            s.draw(fr, t)
-        for s in STROKES["income"]:
-            s.draw(fr, t)
-    elif a == 74.5:
-        for s in TEXTS["disguise"] + TEXTS["sales"]:
-            s.draw(fr, t)
+    if a == 39.63:
+        money_cards(fr, t)
     elif a == 111.42:
         for s in TEXTS["40k"]:
             s.draw(fr, t, person)
-    elif a == 130.6:
-        for s in TEXTS["eyes"]:
-            s.draw(fr, t, person)
-    elif a == 172.9:
-        for s in TEXTS["copy"]:
-            s.draw(fr, t)
     elif a == 206.97:
-        if 219.0 <= t <= 223.2:
-            pop_in(fr, ui_card(820, 130, "1 week free · link in description", main_px=40),
-                   OW / 2, OH - 160 * K, t, 219.3, 223.0)
-        for (big, sub, t0), xx in zip((("64M", "views · 1 week", 278.4), ("3M", "views · 1 week", 281.0),
-                                       ("2M", "views · 1 week", 282.2), ("1M", "views · 4 days", 284.1)),
-                                      (390, 1003, 1617, 2230)):
-            if 278.0 <= t <= 286.6:
-                pop_in(fr, ui_card(420, 330, big, sub, style="serif", accent=big == "64M"), xx, OH / 2,
-                       t, t0, 286.2)
-    elif a == 312.8:
-        if 322.9 <= t <= 330.1:
-            ring_card(fr, t)
-    elif a == 363.9:
-        if 437.8 <= t <= 462.2:
-            clips = [("Baby cam: chews wires", 438.3), ("At the vet", 445.2), ("Owner crying", 447.9),
-                     ("Eats a phone charger", 450.8), ("Chews wire in the wall", 453.9), ("Zips up the cage", 455.8),
-                     ("Runs around in the cage", 457.2), ("Two bunnies run around", 459.5)]
-            for i, (lab, t0) in enumerate(clips):
-                col, row = i // 4, i % 4
-                pop_in(fr, ui_card(860, 150, lab, num=f"0{i + 1}", main_px=40, align="l", icon="film"),
-                       OW / 2 + (-480 if col == 0 else 480) * K, (300 + row * 175) * K + 30 * K, t, t0, 461.9)
-    elif a == 509.5:
-        items = [("2× speed", 518.2), ("Captions", 523.4), ("Emojis", 532.7), ("Zoom keyframes · 110%", 547.2)]
-        for i, (lab, t0) in enumerate(items):
-            if t <= 556.0:
-                pop_in(fr, ui_card(620, 150, lab, check=True, main_px=44, align="l"), OW / 2 + 620 * K,
-                       (330 + i * 190) * K, t, t0, 555.6)
-    elif a == 579.35:
-        for s in TEXTS["viral"]:
-            s.draw(fr, t)
+        if 278.0 <= t <= 286.6:
+            for (big, sub, t0), xx in zip((("64M", "views · 1 week", 278.4), ("3M", "views · 1 week", 281.0),
+                                           ("2M", "views · 1 week", 282.2), ("1M", "views · 4 days", 284.1)),
+                                          (390, 1003, 1617, 2230)):
+                pop_in(fr, ui_card(420, 330, big, sub, style="serif", accent=big == "64M"), xx, OH / 2, t, t0, 286.2)
     elif a == 592.03:
         for s in TEXTS["discord"]:
             s.draw(fr, t, person)
@@ -1275,21 +1126,35 @@ def ring_card(fr, t):
     pop_in(fr, (pil_to_bgra(im), g), OW / 2, OH / 2, t, 323.0, 329.8, dur=0.6)
 
 
+def screen_scene(sc, src, t):
+    """screen recordings: full frame and raw, camera only for the highlights."""
+    content, M = render_window_content(sc, src, t, 1.0)
+    for a, b, rect in sc.get("spots", []):
+        amt = ramp(t, a, b, 0.45, 0.45)
+        if amt > 0:  # hook: strong focus; screen-share tutorial: light highlight, everything stays readable
+            content = (spotlight_local(content, rect, M, amt) if sc["a"] < 40 else
+                       spotlight_local(content, rect, M, amt, dim=0.55, blur=2))
+    for s in sc.get("strokes", []):
+        s_draw_local(s, content, t, M)
+    return content
+
+
 def render_scene(sc, src, t):
     kind = sc["kind"]
     person = None
-    if kind == "window":
-        fr = window_scene(sc, src, t)
+    if kind == "screen":
+        fr = screen_scene(sc, src, t)
     elif kind == "paper":
         fr = paper_scene(sc, src, t)
     elif kind == "head":
         fr, person = head_scene(sc, src, t)
     elif kind == "ui":
         fr = ui_frame(sc["ui"], t)
-        if sc["ui"] in CH:
-            pass
     else:
         fr = phone_scene(sc, src, t)
+    amt = max([ramp(t, a, b, 0.35, 0.35) for a, b in sc.get("carddim", [])] + [0])
+    if amt > 0:
+        fr = card_dim(fr, amt)
     overlays(fr, sc, t, person)
     return fr
 
@@ -1337,8 +1202,8 @@ def frame_at(tau, src):
 
 def trans(A, B, u):
     w = e_sm(u)
-    a = zoom_frame(A, 1 + 0.16 * e_io(u), 26 * K * math.sin(math.pi * clamp(u)) ** 1.5)
-    b = zoom_frame(B, 0.90 + 0.10 * e_out(u), 26 * K * math.sin(math.pi * clamp(u)) ** 1.5)
+    a = zoom_frame(A, 1 + 0.08 * e_io(u), 18 * K * math.sin(math.pi * clamp(u)) ** 1.5)
+    b = zoom_frame(B, 0.95 + 0.05 * e_out(u), 18 * K * math.sin(math.pi * clamp(u)) ** 1.5)
     return cv2.addWeighted(a, 1 - w, b, w, 0)
 
 
@@ -1518,12 +1383,14 @@ def render_audio(out_wav):
         devil = REPO / "assets/music/user/me-and-the-devil-instrumental.mp3"
     mdir = REPO / "assets/music"
     # music: intense track for the hook and the money story, cut to silence right before each reveal
-    bed(devil, 0.0, 25.85, -15, start=1.35, fi=0.02, fo=0.12)
-    bed(devil, 26.0, 117.2, -17, start=46.0, fi=0.02, fo=0.35)
-    bed(devil, 117.84, 167.9, -18, start=59.5, fi=0.02, fo=1.0, loop_from=6.0)
-    bed(mdir / "background-chill/digital-lemonade.mp3", 167.8, 359.3, -22, start=0.0, fi=1.2, fo=1.0)
-    bed(mdir / "background-chill/chill-wave.mp3", 359.2, 562.4, -22, start=4.0, fi=1.2, fo=0.5)
-    bed(devil, 579.3, END, -19, start=6.0, fi=0.8, fo=2.5)
+    bed(devil, 0.0, 25.85, -18, start=1.35, fi=0.02, fo=0.12)
+    bed(devil, 26.0, 39.3, -20, start=46.0, fi=0.02, fo=1.2)
+    # paper drawing + tutorial: mature, minimal beds kept low so his explanation sits on top
+    bed(mdir / "suspense-underscore/crypto.mp3", 39.63, 117.2, -29, start=0.0, fi=1.5, fo=0.3)
+    bed(devil, 117.84, 167.9, -21, start=59.5, fi=0.02, fo=1.0, loop_from=6.0)
+    bed(devil, 167.8, 206.9, -27, start=6.0, fi=1.2, fo=1.5)
+    # screen shares (206.97-592.03) stay raw: no music
+    bed(devil, 592.03, END, -22, start=6.0, fi=0.8, fo=2.5)
 
     # sound design
     wh_fast, wh_mid, wh_slow = sfx_whoosh(0.55, 300, 6500, 0.6), sfx_whoosh(0.8, 200, 5000, 0.6), sfx_whoosh(1.3, 150, 3800, 0.7)
@@ -1566,11 +1433,8 @@ def render_audio(out_wav):
                     break
     for tt in np.arange(61.73, 62.4, 0.05):
         S(tick, tt, -24)
-    for tt in np.arange(325.6, 326.6, 0.05):
-        S(tick, tt, -24)
     # UI pops
-    for tt in (57.0, 60.9, 70.85, 125.4, 128.7, 129.9, 219.3, 278.4, 281.0, 282.2, 284.1, 323.0,
-               438.3, 445.2, 447.9, 450.8, 453.9, 455.8, 457.2, 459.5, 518.2, 523.4, 532.7, 547.2):
+    for tt in (57.0, 60.9, 70.85, 278.4, 281.0, 282.2, 284.1):
         S(pop, tt, -19)
         S(wh_fast, tt - 0.25, -24)
     S(hit, 70.85, -14)
@@ -1580,20 +1444,13 @@ def render_audio(out_wav):
     S(boom2, 117.84, -8)
     S(hit, 117.84, -10)
     S(ching, 117.9, -17)
-    # camera punch: "insane"
-    S(wh_fast, 152.2, -16)
-    S(hit, 152.45, -16)
     # spotlights
-    for tt in (225.0, 238.6, 296.6, 348.6, 365.1, 417.2, 463.6):
-        S(wh_slow, tt - 0.4, -23)
-    S(shim, 327.6, -20)
-    S(hit, 325.6 + 1.1, -18)
+    pass  # spotlights on screen shares stay silent
     # zooms in window scenes
-    for tt in (240.5, 297.0, 333.0, 417.0, 463.5, 514.8, 556.6):
-        S(wh_fast, tt - 0.5, -22)
+    pass
 
     # duck music under the finished-ad playback is implicit (no bed there)
-    mix = v + mus + fx
+    mix = v + mus + fx * db(-3)
     raw = WORK / "mix_raw.wav"
     pcm = (np.clip(mix, -1, 1) * 32767).astype(np.int16)
     with wave.open(str(raw), "wb") as w:

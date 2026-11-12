@@ -61,6 +61,7 @@ Music is the original 256–320 kbps MP3 from the composer.
 | File | Length | Use it for |
 |---|---|---|
 | `chill-wave.mp3` | 4:00 | Relaxed chillwave groove; sits well under voice in tutorials / screen recordings |
+| `digital-lemonade.mp3` | 3:00 | Smooth modern electronic groove; tutorials, "here's how" segments |
 | `investigations.mp3` | 1:34 | Curious, slightly sneaky groove: explaining a "secret", setups |
 
 ### `stings/`: short musical hits

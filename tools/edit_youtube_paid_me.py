@@ -771,12 +771,12 @@ def scene(a, b, kind, **kw):
 
 
 # 1 hook: analytics, one push into "122.8M views"
-scene(0.0, 5.55, "screen",
-      cam=Track([(0.0, 1.0, 1280, 720), (0.7, 1.0, 1280, 720), (2.35, 1.95, 600, 640), (5.6, 2.0, 600, 645)]),
-      spots=[(2.2, 5.6, VIEWS)],
-      strokes=[Stroke(curve(482, 672, 628, 670, 3), 2.75, 5.5, cam=True, width=5)])
+scene(0.0, 7.3, "screen",
+      cam=Track([(0.0, 1.0, 1280, 720), (0.7, 1.0, 1280, 720), (2.35, 1.95, 600, 640), (7.4, 2.02, 600, 646)]),
+      spots=[(2.2, 7.4, VIEWS)],
+      strokes=[Stroke(curve(482, 672, 628, 670, 3), 2.75, 7.25, cam=True, width=5)])
 # 2 page: "YouTube AdSense", struck through
-scene(5.55, 12.25, "ui", ui="adsense")
+scene(7.3, 12.25, "ui", ui="adsense")
 # 3 analytics: hold wide, one move onto the blurred revenue card, reveal, back out
 scene(12.25, 39.16, "screen",
       cam=Track([(12.25, 1.0, 1280, 720), (21.7, 1.0, 1280, 720), (25.95, 2.05, 1570, 655),
@@ -789,9 +789,8 @@ scene(39.63, 111.0, "paper",
       carddim=[(56.8, 74.7)])
 # 5 talking head: $40,000 beside his head
 scene(111.42, 167.8, "head",
-      cam=Track([(111.42, 1.06, 1225, 640), (115.6, 1.14, 1220, 610), (117.1, 1.0, 1240, 690),
-                 (167.8, 1.06, 1230, 660)]),
-      bgfx=[(116.9, 121.0)])
+      cam=Track([(111.42, 1.0, 1280, 720), (167.8, 1.0, 1280, 720)]),
+      bgfx=[(116.9, 121.0), (124.9, 131.3), (136.5, 140.5), (144.3, 149.7)])
 scene(167.8, 172.9, "ui", ui="ch1")
 scene(172.9, 205.32, "paper",
       cam=Track([(172.9, 1.14, 1350, 640), (205.4, 1.10, 1370, 720)]))
@@ -810,7 +809,7 @@ scene(592.03, 609.45, "head",
       bgfx=[(599.0, 604.6)])
 
 # transitions: zoom-through between consecutive scenes
-NO_TRANS = set()
+NO_TRANS = {111.42}  # paper -> camera is a straight cut
 
 # ------------------------------------------------------------------ text / UI content
 W_ = OW / 2
@@ -823,13 +822,25 @@ def L(*words):
 
 TEXTS = {
     "adsense": [
-        TextSeq([L(("YouTube", "serif", 8.64), ("AdSense", "serif", 9.12))], 12.2, (W_, OH / 2), sizes=(84, 230)),
+        TextSeq([L(("all", "sans", 7.45), ("my", "sans", 7.68), ("money", "sans", 7.84), ("comes", "sans", 8.24),
+                   ("from", "sans", 8.48))], 12.2, (W_, OH / 2 - 250), sizes=(96, 230)),
+        TextSeq([L(("YouTube", "serif", 8.64), ("AdSense", "serif", 9.12))], 12.2, (W_, OH / 2 + 40), sizes=(84, 230)),
     ],
     "40k": [
         TextSeq([L(("last", "sans", 117.1), ("month", "sans", 117.25)), L(("I", "sans", 117.4), ("made", "sans", 117.5))],
                 120.9, (880, 600), sizes=(104, 200), align="r", behind=True, ry=-14, rz=-2),
         TextSeq([L(("$40,000", "serif", 117.84))], 120.9, (1690, 640), sizes=(100, 160), align="l", behind=True,
                 ry=16, rz=4, stagger=0.05),
+    ],
+    "eyes": [
+        TextSeq([L(("millions", "sans", 136.8), ("of", "sans", 137.6))], 140.3, (880, 610), sizes=(104, 200),
+                align="r", behind=True, ry=-14),
+        TextSeq([L(("eyes", "serif", 137.9))], 140.3, (1700, 620), sizes=(100, 230), align="l", behind=True, ry=16, rz=4),
+    ],
+    "paid": [
+        TextSeq([L(("you", "sans", 144.6), ("get", "sans", 144.75))], 149.6, (880, 590), sizes=(110, 200),
+                align="r", behind=True, ry=-14),
+        TextSeq([L(("paid", "serif", 144.9))], 149.6, (1700, 600), sizes=(100, 240), align="l", behind=True, ry=16, rz=4),
     ],
     "discord": [
         TextSeq([L(("join", "sans", 599.3), ("the", "sans", 599.5))], 604.6, (880, 610), sizes=(110, 200), align="r",
@@ -858,7 +869,7 @@ for key, (n, pre, sp, a, b) in CH.items():
     TEXTS[key] = chapter_texts(n, pre, sp, a, b)
 
 STROKES = {
-    "adsense": [Stroke(curve(W_ - 780, 760, W_ + 780, 728, -8 * K), 10.3, 12.2, dur=0.35, colour=WHITE, width=7)],
+    "adsense": [Stroke(curve(W_ - 780, 800, W_ + 780, 768, -8 * K), 10.3, 12.2, dur=0.35, colour=WHITE, width=7)],
 }
 for key, (n, pre, sp, a, b) in CH.items():
     seq = TEXTS[key][1]
@@ -1092,8 +1103,12 @@ def overlays(fr, sc, t, person):
     if a == 39.63:
         money_cards(fr, t)
     elif a == 111.42:
-        for s in TEXTS["40k"]:
+        for s in TEXTS["40k"] + TEXTS["eyes"] + TEXTS["paid"]:
             s.draw(fr, t, person)
+        if 125.2 <= t <= 131.3:  # the old way, one card at a time on his left while he keeps talking
+            for (lab, ic, t0), yy in zip((("Pay advertisers", "dollar", 125.4), ("TV commercials", "tv", 128.7),
+                                          ("Paid ads", "ad", 129.9)), (470, 720, 970)):
+                pop_in(fr, ui_card(600, 170, lab, icon=ic, main_px=50), 520, yy, t, t0, 131.2)
     elif a == 206.97:
         if 278.0 <= t <= 286.6:
             for (big, sub, t0), xx in zip((("64M", "views · 1 week", 278.4), ("3M", "views · 1 week", 281.0),
@@ -1330,6 +1345,20 @@ def sfx_ching():
 
 def render_audio(out_wav):
     voice = load(RAW)[: int(END * SR)]
+    # clips played during the screen share were recorded twice (desktop audio + mic hearing the speakers,
+    # ~51 ms later). Cancel that copy with an inverse comb filter on just those stretches.
+    for a_, b_, dly, gain, lp in ((244.0, 259.6, 0.0514, 0.30, 1500.0), (563.0, 579.1, 0.0511, 0.30, 3000.0)):
+        i0, i1 = int(a_ * SR), int(b_ * SR)
+        seg = voice[i0:i1]
+        N = 1 << int(np.ceil(np.log2(len(seg) + SR)))
+        f = np.fft.rfftfreq(N, 1 / SR)
+        G = gain * np.exp(-2j * np.pi * f * dly) / (1 + 1j * f / lp)
+        clean = np.fft.irfft(np.fft.rfft(seg, N, axis=0) / (1 + G)[:, None], N, axis=0)[:len(seg)].astype(np.float32)
+        k = int(0.3 * SR)
+        w = np.ones(len(seg), np.float32)
+        w[:k] = np.linspace(0, 1, k)
+        w[-k:] = np.linspace(1, 0, k)
+        voice[i0:i1] = seg * (1 - w[:, None]) + clean * w[:, None]
     segs, prev = [], 0.0
     for a, b in CUTS + [(END, END)]:
         segs.append(voice[int(prev * SR):int(a * SR)])
@@ -1386,15 +1415,19 @@ def render_audio(out_wav):
     bed(devil, 0.0, 25.85, -18, start=1.35, fi=0.02, fo=0.12)
     bed(devil, 26.0, 39.3, -20, start=46.0, fi=0.02, fo=1.2)
     # paper drawing + tutorial: mature, minimal beds kept low so his explanation sits on top
-    bed(mdir / "suspense-underscore/crypto.mp3", 39.63, 117.2, -29, start=0.0, fi=1.5, fo=0.3)
-    bed(devil, 117.84, 167.9, -21, start=59.5, fi=0.02, fo=1.0, loop_from=6.0)
-    bed(devil, 167.8, 206.9, -27, start=6.0, fi=1.2, fo=1.5)
+    bed(mdir / "suspense-underscore/crypto.mp3", 39.63, 111.2, -29, start=0.0, fi=1.5, fo=2.5)
+    # back on camera: the intense track creeps in very slowly underneath him
+    bed(devil, 111.42, 167.9, -23, start=40.0, fi=7.0, fo=1.0, loop_from=6.0)
+    # step 1 paper; fades out slowly across the cut into the screen share
+    bed(devil, 167.8, 210.5, -27, start=6.0, fi=1.2, fo=4.5)
     # screen shares (206.97-592.03) stay raw: no music
-    bed(devil, 592.03, END, -22, start=6.0, fi=0.8, fo=2.5)
+    bed(devil, 592.03, END, -22, start=6.0, fi=3.5, fo=2.5)
 
     # sound design
     wh_fast, wh_mid, wh_slow = sfx_whoosh(0.55, 300, 6500, 0.6), sfx_whoosh(0.8, 200, 5000, 0.6), sfx_whoosh(1.3, 150, 3800, 0.7)
     pop, shim, tick, hit, ching = sfx_pop(), sfx_shimmer(), sfx_tick(), sfx_hit(), sfx_ching()
+    for tt in (125.4, 128.7, 129.9):
+        place(fx, pop, to_out(tt), -22)
     cg = REPO / "assets/sfx/cinematic-generated"
     riser = load(cg / "riser-tonal-4s.wav")
     swell = load(cg / "reverse-swell-2s.wav")

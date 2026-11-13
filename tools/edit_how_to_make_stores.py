@@ -154,7 +154,12 @@ VIG = np.repeat((np.clip(1 - 0.42 * _r ** 2.3, 0, 1) * 255).astype(np.uint8)[:, 
 del _yy, _xx, _r
 
 
+RAW_LOOK = True
+
+
 def grade(fr):
+    if RAW_LOOK:
+        return fr
     fr = cv2.LUT(fr, LUT)
     return cv2.multiply(fr, VIG, scale=1 / 255)
 
@@ -762,27 +767,24 @@ def scene(a, b, kind, **kw):
 PHONE_RECT = (1000, 130, 1820, 1300)
 STORE_SCENES = True
 
-# 1 hook: push into the phone ($40,068 in sales), then "built in one prompt"
-scene(0.0, 17.6, "head",
-      cam=Track([(0.0, 1.0, 1280, 720), (0.25, 1.0, 1280, 720), (1.25, 1.42, 1380, 640), (4.5, 1.45, 1385, 650),
-                 (5.4, 1.0, 1280, 720), (17.6, 1.0, 1280, 720)]),
-      spots=[(0.9, 4.8, PHONE_RECT)], bgfx=[(5.2, 8.7)])
-scene(17.6, 28.5, "screen", cam=Track([(17.6, 1.0, 1280, 720), (28.5, 1.0, 1280, 720)]))
-scene(28.5, 38.0, "head", cam=Track([(28.5, 1.0, 1280, 720), (38.0, 1.0, 1280, 720)]))
-scene(38.0, 60.1, "screen", cam=Track([(38.0, 1.0, 1280, 720), (60.1, 1.0, 1280, 720)]))
-scene(60.1, 69.2, "head", cam=Track([(60.1, 1.0, 1280, 720), (69.2, 1.0, 1280, 720)]), bgfx=[(61.2, 66.1)])
-scene(69.2, 95.7, "paper", cam=Track([(69.2, 1.06, 1280, 720), (95.7, 1.12, 1280, 700)]))
+# Raw edit: the footage is untouched (no zooms, no grade, no darkening, no text); the only additions are the
+# STEP 01-04 pages at the moments he introduces each step.
+STATIC = dict(cam=Track([(0.0, 1.0, 1280, 720), (500.0, 1.0, 1280, 720)]))
+scene(0.0, 17.6, "head", **STATIC)
+scene(17.6, 28.5, "screen", **STATIC)
+scene(28.5, 38.0, "head", **STATIC)
+scene(38.0, 60.1, "screen", **STATIC)
+scene(60.1, 69.2, "head", **STATIC)
+scene(69.2, 95.7, "paper", cam=Track([(69.2, 1.04, 1280, 720), (95.7, 1.04, 1280, 720)]))  # stabilized only
 scene(95.7, 99.7, "ui", ui="ch1")
-scene(99.7, 136.2, "screen", cam=Track([(99.7, 1.0, 1280, 720), (136.2, 1.0, 1280, 720)]))
+scene(99.7, 136.2, "screen", **STATIC)
 scene(136.2, 140.1, "ui", ui="ch2")
-scene(140.1, 167.3, "screen", cam=Track([(140.1, 1.0, 1280, 720), (167.3, 1.0, 1280, 720)]),
-      carddim=[(159.4, 163.7)])
+scene(140.1, 167.3, "screen", **STATIC)
 scene(167.3, 171.3, "ui", ui="ch3")
-scene(171.3, 351.1, "screen", cam=Track([(171.3, 1.0, 1280, 720), (351.1, 1.0, 1280, 720)]))
+scene(171.3, 351.1, "screen", **STATIC)
 scene(351.1, 355.1, "ui", ui="ch4")
-scene(355.1, 363.2, "head", cam=Track([(355.1, 1.0, 1280, 720), (363.2, 1.0, 1280, 720)]))
-scene(363.2, 455.45, "screen", cam=Track([(363.2, 1.0, 1280, 720), (455.45, 1.0, 1280, 720)]),
-      carddim=[(375.5, 386.7)])
+scene(355.1, 363.2, "head", **STATIC)
+scene(363.2, 455.45, "screen", **STATIC)
 
 # zoom-through transitions only into / out of the STEP pages; everything else stays a straight cut like the raw
 NO_TRANS = {sc["a"] for i, sc in enumerate(SCENES)
@@ -798,18 +800,6 @@ def L(*words):
 
 
 TEXTS = {
-    "prompt": [
-        TextSeq([L(("built", "sans", 5.5), ("in", "sans", 7.0))], 8.6, (880, 620), sizes=(110, 200), align="r",
-                behind=True, ry=-14),
-        TextSeq([L(("one prompt", "serif", 7.2))], 8.6, (1610, 630), sizes=(100, 112), align="l", behind=True,
-                ry=16, rz=4),
-    ],
-    "three": [
-        TextSeq([L(("1", "sans", 61.8), ("of", "sans", 62.0))], 66.0, (880, 620), sizes=(110, 200), align="r",
-                behind=True, ry=-14),
-        TextSeq([L(("3 things", "serif", 62.5))], 66.0, (1650, 630), sizes=(100, 170), align="l", behind=True,
-                ry=16, rz=4),
-    ],
 }
 
 
@@ -1051,23 +1041,8 @@ def card_dim(fr, amt):
 
 
 def overlays(fr, sc, t, person):
-    """scene-specific text/cards drawn on the final composite."""
-    a = sc["a"]
-    if a == 0.0:
-        for s in TEXTS["prompt"]:
-            s.draw(fr, t, person)
-    elif a == 60.1:
-        for s in TEXTS["three"]:
-            s.draw(fr, t, person)
-    elif a == 140.1:
-        if 159.5 <= t <= 163.7:
-            ring_card(fr, t, 159.6, 160.0, 163.5, 87)
-    elif a == 363.2:
-        if 375.6 <= t <= 386.8:
-            y = OH / 2 + 20
-            pop_in(fr, ui_card(560, 400, "$25", "1 Cloudora", style="serif", main_px=130), 900, y, t, 375.8, 386.6)
-            pop_in(fr, ui_card(560, 400, "$34", "2 Cloudoras + free shipping", style="serif", accent=True,
-                               main_px=130), 1660, y, t, 378.6, 386.6)
+    """raw edit: nothing on top of the footage."""
+    return
 
 
 def ring_card(fr, t, t_in, t_count, t_out, score):
@@ -1347,44 +1322,19 @@ def render_audio(out_wav):
     if not devil.exists():
         devil = REPO / "assets/music/user/me-and-the-devil-instrumental.mp3"
     mdir = REPO / "assets/music"
-    # music: intense track under the hook, moody beds under talking/paper, nothing under screen shares
-    bed(devil, 0.0, 20.0, -18, start=1.35, fi=0.02, fo=3.0)
-    bed(mdir / "suspense-underscore/crypto.mp3", 28.5, 38.4, -29, start=0.0, fi=2.0, fo=2.0)
-    bed(mdir / "suspense-underscore/crypto.mp3", 60.1, 96.2, -29, start=20.0, fi=3.0, fo=3.0)
-    bed(devil, 351.1, 366.0, -24, start=40.0, fi=4.0, fo=3.5)
-
-    # sound design
-    wh_fast, wh_mid, wh_slow = sfx_whoosh(0.55, 300, 6500, 0.6), sfx_whoosh(0.8, 200, 5000, 0.6), sfx_whoosh(1.3, 150, 3800, 0.7)
-    pop, shim, tick, hit, ching = sfx_pop(), sfx_shimmer(), sfx_tick(), sfx_hit(), sfx_ching()
-    cg = REPO / "assets/sfx/cinematic-generated"
-    sub = load(cg / "sub-drop-short.wav")
-
-    def S(clip, t_src, g, align_end=False):
-        t = to_out(t_src)
-        if align_end:
-            t -= len(clip) / SR
-        place(fx, clip, t, g)
-
+    # raw edit: no music, no hits; only a soft whoosh into / out of the STEP pages
+    wh_mid = sfx_whoosh(0.8, 200, 5000, 0.6)
+    shim = sfx_shimmer()
     for i in range(1, len(SCENES)):
         a = SCENES[i]["a"]
         if a not in NO_TRANS:
-            place(fx, wh_mid, to_out(a) - 0.48, -14)
-    place(fx, sub, 0.0, -12)
-    S(wh_slow, 0.0, -21)
-    S(hit, 1.5, -16)
-    S(ching, 1.55, -22)
+            place(fx, wh_mid, to_out(a) - 0.48, -19)
     for key, seqs in TEXTS.items():
-        for s in seqs:
-            for c in s.chars:
+        for s_ in seqs:
+            for c in s_.chars:
                 if c["glow"] is not None:
-                    S(shim, c["t0"], -27)
+                    place(fx, shim, to_out(c["t0"]), -30)
                     break
-    for tt in np.arange(160.0, 161.0, 0.05):
-        S(tick, tt, -24)
-    S(shim, 161.4, -21)
-    for tt in (159.6, 375.8, 378.6):
-        S(pop, tt, -19)
-        S(wh_fast, tt - 0.25, -24)
 
     # duck music under the finished-ad playback is implicit (no bed there)
     mix = v + mus + fx * db(-3)

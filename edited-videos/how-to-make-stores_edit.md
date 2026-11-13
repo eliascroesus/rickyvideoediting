@@ -5,16 +5,9 @@ Edit of `How to make stores` (raw: GitHub Release `raw-videos-2`, 3840x2160 60 f
 Same style as the approved "how much YouTube paid me" edit. Rebuild with `tools/precompute_paid_me.py`
 (arguments in the header of the script) and `tools/edit_how_to_make_stores.py`.
 
-## Music credits (paste into the YouTube description)
+## Music
 
-```text
-"Crypto" Kevin MacLeod (incompetech.com)
-Licensed under Creative Commons: By Attribution 4.0
-http://creativecommons.org/licenses/by/4.0/
-```
-
-The hook and the bundle section use the "Me and the Devil" instrumental you supplied. It is not royalty-free,
-so YouTube may claim it. It is not stored in this repo.
+None. This edit is raw (his voice only), so there is nothing to credit.
 
 ## Breakdown of the raw video
 
@@ -33,15 +26,11 @@ so YouTube may claim it. It is not stored in this repo.
 | 6:03 | Screen | Rapid Bundles: 1 for $25, 2 for $34 + free shipping |
 | 6:44 | Screen | Branded store vs scam store, coaching CTA |
 
-## What was done (kept fairly raw, select highlights only)
+## What was done (raw edit)
 
-- Hook: push-in on the phone showing $40,068 in sales, everything around it dimmed; then
-  "built in | **one prompt**" beside his head with the background softly darkened and blurred.
-- 1:01: "1 of | **3 things**" beside his head.
-- Paper section stabilized, calm low "Crypto" bed.
-- STEP 01 to 04 pages: Find a viral product / Validate the product / Build the store with AI /
-  Make a no-brainer offer.
-- 2:40: 87/100 product-score card. 6:16: $25 vs $34 bundle cards.
-- Screen shares stay raw: full frame, no camera movement, no music, no captions.
-- Cuts between camera, paper and screen are straight cuts like the raw; transitions only into and out
-  of the STEP pages.
+- The footage is untouched: no zooms, no colour grade or darkening, no captions, no cards, no music.
+- The only additions are the STEP 01 to 04 pages, placed where he introduces each step:
+  Find a viral product (1:36) / Validate the product (2:16) / Build the store with AI (2:47) /
+  Make a no-brainer offer (5:51), with a soft whoosh in and out.
+- The paper section is stabilized (removes camera jitter, not visible as an effect).
+- One 0.75 s pause trimmed at 5:10. Audio loudness-normalized to -14 LUFS.

@@ -801,7 +801,7 @@ TEXTS = {
     "prompt": [
         TextSeq([L(("built", "sans", 5.5), ("in", "sans", 7.0))], 8.6, (880, 620), sizes=(110, 200), align="r",
                 behind=True, ry=-14),
-        TextSeq([L(("one prompt", "serif", 7.2))], 8.6, (1640, 630), sizes=(100, 150), align="l", behind=True,
+        TextSeq([L(("one prompt", "serif", 7.2))], 8.6, (1610, 630), sizes=(100, 112), align="l", behind=True,
                 ry=16, rz=4),
     ],
     "three": [

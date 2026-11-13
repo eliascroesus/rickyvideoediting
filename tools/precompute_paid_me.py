@@ -18,7 +18,7 @@ SW, SH = 2560, 1440
 
 def frames(raw, a, b, w, h):
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-ss", f"{a:.3f}", "-t", f"{b - a:.3f}", "-i", raw, "-an",
-                          "-vf", f"fps={FPS},scale={w}:{h}", "-f", "rawvideo", "-pix_fmt", "bgr24", "-"],
+                          "-vf", f"fps={FPS},scale={w}:{h}:flags=area", "-f", "rawvideo", "-pix_fmt", "bgr24", "-"],
                          stdout=subprocess.PIPE)
     n = w * h * 3
     while True:
@@ -80,10 +80,18 @@ def stab(raw, work, a, b):
 
 
 if __name__ == "__main__":
+    # optional last argument: segments "a-b,a-b" (defaults are the 'paid me' video)
     mode, raw, work = sys.argv[1], sys.argv[2], Path(sys.argv[3])
+    segs_arg = sys.argv[-1] if "-" in sys.argv[-1] and "," in sys.argv[-1] or sys.argv[-1].count("-") == 1 and sys.argv[-1][0].isdigit() else None
+
+    def parse(default):
+        if not segs_arg:
+            return default
+        return [tuple(float(v) for v in s.split("-")) for s in segs_arg.split(",")]
+
     if mode == "seg":
-        for a, b in ((111.13, 167.80), (592.03, 609.45)):
+        for a, b in parse(((111.13, 167.80), (592.03, 609.45))):
             seg(raw, work, sys.argv[4], a, b)
     else:
-        for a, b in ((39.27, 111.13), (167.80, 206.87)):
+        for a, b in parse(((39.27, 111.13), (167.80, 206.87))):
             stab(raw, work, a, b)

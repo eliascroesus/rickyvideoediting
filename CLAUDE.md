@@ -1,9 +1,13 @@
 # Notes for Claude: video editing repo
 
+- **Read `STYLE.md` before editing anything.** It holds Ricky's approved editing style (keep it raw,
+  STEP pages, cards, fonts/colours, music and camera rules, what was rejected) and how the render
+  scripts in `tools/` work. Default to the "Raw" level unless he asks for more.
+
 - Raw footage: `raw-videos/` (Git LFS). After cloning, fetch it with `git lfs install && git lfs pull`
   (a fresh clone may only contain LFS pointer files). A note `<clip-name>.md` next to a clip, if present,
   describes the edit the user wants.
-- Large raw videos may instead be attached to the GitHub Release tagged `raw-videos`
+- Large raw videos may instead be attached to a GitHub Release (tags `raw-videos`, `raw-videos-2`, ...)
   (browser upload, up to 2 GB per file). Download with
   `curl -L -o raw-videos/<file> https://github.com/eliascroesus/rickyvideoediting/releases/download/raw-videos/<file>`
   (asset names with spaces become dots on GitHub; list them via the releases API if unsure).
